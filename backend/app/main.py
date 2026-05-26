@@ -28,6 +28,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from app.api.documents import router as documents_router  # noqa: E402
+
+app.include_router(documents_router)
+
 
 @app.get("/health")
 async def health() -> dict:
