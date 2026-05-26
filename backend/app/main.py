@@ -29,7 +29,9 @@ app.add_middleware(
 )
 
 from app.api.documents import router as documents_router  # noqa: E402
+from app.api.notebooks import router as notebooks_router # noqa: E402
 
+app.include_router(notebooks_router)
 app.include_router(documents_router)
 
 
