@@ -78,3 +78,57 @@ class TestConfigureProvider:
         with patch("app.services.provider_factory._configure_ollama") as mock_fn:
             configure_provider(cfg)
             mock_fn.assert_called_once_with(cfg)
+
+    def test_configure_ollama(self):
+        cfg = MagicMock()
+        cfg.ollama_llm_model = "llama3.2"
+        cfg.ollama_base_url = "http://localhost:11434"
+        cfg.ollama_embedding_model = "nomic-embed-text"
+        
+        with patch("llama_index.llms.ollama.Ollama") as mock_llm, \
+             patch("llama_index.embeddings.ollama.OllamaEmbedding") as mock_embed:
+            from app.services.provider_factory import _configure_ollama
+            _configure_ollama(cfg)
+            mock_llm.assert_called_once()
+            mock_embed.assert_called_once()
+
+    def test_configure_openai(self):
+        cfg = MagicMock()
+        cfg.openai_llm_model = "gpt-4o-mini"
+        cfg.openai_api_key = "test"
+        cfg.openai_embedding_model = "text-embedding-3-small"
+        
+        with patch("llama_index.llms.openai.OpenAI") as mock_llm, \
+             patch("llama_index.embeddings.openai.OpenAIEmbedding") as mock_embed:
+            from app.services.provider_factory import _configure_openai
+            _configure_openai(cfg)
+            mock_llm.assert_called_once()
+            mock_embed.assert_called_once()
+
+    def test_configure_groq(self):
+        cfg = MagicMock()
+        cfg.groq_llm_model = "llama3-70b"
+        cfg.groq_api_key = "test"
+        cfg.groq_embedding_model = "nomic-embed-text"
+        cfg.ollama_base_url = "http://localhost:11434"
+        
+        with patch("llama_index.llms.groq.Groq") as mock_llm, \
+             patch("llama_index.embeddings.ollama.OllamaEmbedding") as mock_embed:
+            from app.services.provider_factory import _configure_groq
+            _configure_groq(cfg)
+            mock_llm.assert_called_once()
+            mock_embed.assert_called_once()
+
+    def test_configure_gemini(self):
+        cfg = MagicMock()
+        cfg.gemini_llm_model = "gemini-flash"
+        cfg.gemini_api_key = "test"
+        cfg.gemini_embedding_model = "nomic-embed-text"
+        cfg.ollama_base_url = "http://localhost:11434"
+        
+        with patch("llama_index.llms.google_genai.GoogleGenAI") as mock_llm, \
+             patch("llama_index.embeddings.ollama.OllamaEmbedding") as mock_embed:
+            from app.services.provider_factory import _configure_gemini
+            _configure_gemini(cfg)
+            mock_llm.assert_called_once()
+            mock_embed.assert_called_once()
