@@ -11,8 +11,19 @@ class Settings(BaseSettings):
 
     llm_provider: str = "ollama"
 
+    # Model names — override in .env to switch without touching code
+    ollama_llm_model: str = "llama3.2"
+    ollama_embedding_model: str = "nomic-embed-text"
+    openai_llm_model: str = "gpt-4o-mini"
+    openai_embedding_model: str = "text-embedding-3-small"
+    gemini_llm_model: str = "gemini-2.0-flash"
+    gemini_embedding_model: str = "nomic-embed-text"  # via Ollama
+    groq_llm_model: str = "llama-3.1-70b-versatile"
+    groq_embedding_model: str = "nomic-embed-text"  # via Ollama
+
     openai_api_key: str = ""
     gemini_api_key: str = ""
+    groq_api_key: str = ""
     ollama_base_url: str = "http://localhost:11434"
 
     database_url: str = "postgresql+asyncpg://ragqa:ragqa@localhost:5432/ragqa"

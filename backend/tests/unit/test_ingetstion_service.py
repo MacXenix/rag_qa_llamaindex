@@ -107,9 +107,44 @@ class TestDeleteDocument:
     @pytest.mark.asyncio
     async def test_found_deletes(self, service, db):
         mock_doc = MagicMock()
+        mock_doc.source = "doc.pdf"
         db.get = AsyncMock(return_value=mock_doc)
 
-        await service.delete_document(1)
+        with patch("asyncio.to_thread", new=AsyncMock(return_value=None)):
+            await service.delete_document(1)
 
         db.delete.assert_awaited_once_with(mock_doc)
         db.commit.assert_awaited_once()
+
+
+class TestDeleteFromChroma:
+    def test_deletes_matching_ids(self, service):
+        mock_client = MagicMock()
+        mock_collection = MagicMock()
+        mock_client.get_or_create_collection.return_value = mock_collection
+        mock_collection.get.return_value = {"ids": ["id-1", "id-2"]}
+
+        with patch("app.services.ingestion_service.get_chroma_client", return_value=mock_client):
+            service._delete_from_chroma("doc.pdf")
+
+        mock_collection.get.assert_called_once_with(where={"rag_source": "doc.pdf"})
+        mock_collection.delete.assert_called_once_with(ids=["id-1", "id-2"])
+
+    def test_no_ids_skips_delete(self, service):
+        mock_client = MagicMock()
+        mock_collection = MagicMock()
+        mock_client.get_or_create_collection.return_value = mock_collection
+        mock_collection.get.return_value = {"ids": []}
+
+        with patch("app.services.ingestion_service.get_chroma_client", return_value=mock_client):
+            service._delete_from_chroma("ghost.pdf")
+
+        mock_collection.delete.assert_not_called()
+
+    def test_chroma_error_is_swallowed(self, service):
+        with patch(
+            "app.services.ingestion_service.get_chroma_client",
+            side_effect=Exception("connection refused"),
+        ):
+            # Should not raise
+            service._delete_from_chroma("any.pdf")

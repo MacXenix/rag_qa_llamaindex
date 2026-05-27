@@ -10,7 +10,7 @@ from llama_index.readers.web import BeautifulSoupWebReader
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.chromadb import get_storage_context
+from app.core.chromadb import get_chroma_client, get_storage_context
 from app.models.document import Document
 
 SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".pptx", ".txt", ".md"}
@@ -40,6 +40,9 @@ class IngestionService:
             )
 
         documents = self._load_file(content, suffix)
+        source = file.filename or "unknown"
+        for doc in documents:
+            doc.metadata["rag_source"] = source
 
         storage_context = get_storage_context()
         await asyncio.to_thread(
@@ -59,17 +62,33 @@ class IngestionService:
         return doc
 
     def _load_file(self, content: bytes, suffix: str) -> list:
-        """Save content to a temp file and load with SimpleDirectoryReader."""
+        """Save content to a temp file and load with the best available reader."""
         tmp_path: str | None = None
         try:
             # delete=False required on Windows — file can't be opened twice
             with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
                 tmp.write(content)
                 tmp_path = tmp.name
+
+            if suffix == ".pdf":
+                return self._load_pdf(tmp_path)
+
             return SimpleDirectoryReader(input_files=[tmp_path]).load_data()
         finally:
             if tmp_path and os.path.exists(tmp_path):
                 os.unlink(tmp_path)
+
+    def _load_pdf(self, path: str) -> list:
+        """Use PyMuPDF for PDFs — handles more types than the default parser."""
+        try:
+            from llama_index.readers.file import PyMuPDFReader
+            docs = PyMuPDFReader().load(file_path=path)
+            if docs and any(d.text.strip() for d in docs):
+                return docs
+        except Exception:
+            pass
+        # Fallback to SimpleDirectoryReader if PyMuPDF fails or returns empty
+        return SimpleDirectoryReader(input_files=[path]).load_data()
 
     # ------------------------------------------------------------------
     # URL ingestion
@@ -82,6 +101,8 @@ class IngestionService:
         documents = await asyncio.to_thread(
             BeautifulSoupWebReader().load_data, urls=[url]
         )
+        for doc in documents:
+            doc.metadata["rag_source"] = url
 
         storage_context = get_storage_context()
         await asyncio.to_thread(
@@ -106,10 +127,22 @@ class IngestionService:
         )
         return list(result.scalars().all())
 
+    def _delete_from_chroma(self, source: str) -> None:
+        """Delete all ChromaDB nodes whose rag_source matches source."""
+        try:
+            client = get_chroma_client()
+            collection = client.get_or_create_collection("documents")
+            results = collection.get(where={"rag_source": source})
+            ids = results.get("ids", [])
+            if ids:
+                collection.delete(ids=ids)
+        except Exception:
+            pass  # Best-effort cleanup — log in production
+
     async def delete_document(self, doc_id: int) -> None:
         doc = await self.db.get(Document, doc_id)
         if doc is None:
             raise ValueError(f"Document {doc_id} not found")
-        # TODO Phase 4: also delete nodes from ChromaDB by metadata filter
+        await asyncio.to_thread(self._delete_from_chroma, doc.source)
         await self.db.delete(doc)
         await self.db.commit()

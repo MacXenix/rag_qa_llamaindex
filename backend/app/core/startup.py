@@ -6,9 +6,9 @@ def validate_provider_config(app_settings: AppSettings = default_settings) -> No
     """Fail fast at startup if the provider's required config is missing."""
     provider = app_settings.llm_provider.lower()
 
-    if provider not in ("ollama", "openai", "gemini"):
+    if provider not in ("ollama", "openai", "gemini", "groq"):
         raise RuntimeError(
-            f"Unknown LLM_PROVIDER: {provider!r}. Must be ollama, openai, or gemini."
+            f"Unknown LLM_PROVIDER: {provider!r}. Must be ollama, openai, gemini, or groq."
         )
 
     if provider == "openai" and not app_settings.openai_api_key:
@@ -19,6 +19,11 @@ def validate_provider_config(app_settings: AppSettings = default_settings) -> No
     if provider == "gemini" and not app_settings.gemini_api_key:
         raise RuntimeError(
             "LLM_PROVIDER=gemini but GEMINI_API_KEY is not set in .env"
+        )
+
+    if provider == "groq" and not app_settings.groq_api_key:
+        raise RuntimeError(
+            "LLM_PROVIDER=groq but GROQ_API_KEY is not set in .env"
         )
 
 
