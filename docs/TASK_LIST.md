@@ -126,9 +126,9 @@
 
 **Goal:** 80%+ test coverage, clean build, ready to use.
 
-- [~] Run pytest coverage — fix gaps to reach 80%+ (Currently at 78%)
-- [ ] Final README update
-- [ ] Tag `v1.0.0`
+- [x] Run pytest coverage — fix gaps to reach 80%+ (Completed at 83% coverage)
+- [x] Final README update (Created root-level README detailing local Ollama & Multi-query architecture)
+- [x] Tag `v1.0.0`
 
 ---
 

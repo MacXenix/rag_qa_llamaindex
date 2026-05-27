@@ -79,7 +79,8 @@ class TestConfigureProvider:
             configure_provider(cfg)
             mock_fn.assert_called_once_with(cfg)
 
-    def test_configure_ollama(self):
+    @patch("app.services.provider_factory.Settings")
+    def test_configure_ollama(self, mock_settings):
         cfg = MagicMock()
         cfg.ollama_llm_model = "llama3.2"
         cfg.ollama_base_url = "http://localhost:11434"
@@ -92,7 +93,8 @@ class TestConfigureProvider:
             mock_llm.assert_called_once()
             mock_embed.assert_called_once()
 
-    def test_configure_openai(self):
+    @patch("app.services.provider_factory.Settings")
+    def test_configure_openai(self, mock_settings):
         cfg = MagicMock()
         cfg.openai_llm_model = "gpt-4o-mini"
         cfg.openai_api_key = "test"
@@ -105,7 +107,8 @@ class TestConfigureProvider:
             mock_llm.assert_called_once()
             mock_embed.assert_called_once()
 
-    def test_configure_groq(self):
+    @patch("app.services.provider_factory.Settings")
+    def test_configure_groq(self, mock_settings):
         cfg = MagicMock()
         cfg.groq_llm_model = "llama3-70b"
         cfg.groq_api_key = "test"
@@ -119,7 +122,8 @@ class TestConfigureProvider:
             mock_llm.assert_called_once()
             mock_embed.assert_called_once()
 
-    def test_configure_gemini(self):
+    @patch("app.services.provider_factory.Settings")
+    def test_configure_gemini(self, mock_settings):
         cfg = MagicMock()
         cfg.gemini_llm_model = "gemini-flash"
         cfg.gemini_api_key = "test"
