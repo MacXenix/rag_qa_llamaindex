@@ -33,7 +33,7 @@ class Settings(BaseSettings):
 
     tavily_api_key: str = ""
     
-    retrieval_mode: str = "basic"  # basic | hyde | rerank | hyde+rerank
+    retrieval_mode: str = "basic"  # basic | hyde | rerank | hyde+rerank | multiquery
 
     @classmethod
     def settings_customise_sources(

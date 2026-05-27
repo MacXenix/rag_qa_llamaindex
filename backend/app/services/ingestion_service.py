@@ -78,17 +78,53 @@ class IngestionService:
             if tmp_path and os.path.exists(tmp_path):
                 os.unlink(tmp_path)
 
+    @staticmethod
+    def _text_is_readable(text: str) -> bool:
+        """Return True if text looks like real extracted content (not raw PDF binary)."""
+        sample = text[:500]
+        if not sample:
+            return False
+        printable = sum(1 for c in sample if c.isprintable() or c in '\n\t\r ')
+        return (printable / len(sample)) > 0.8
+
     def _load_pdf(self, path: str) -> list:
         """Use PyMuPDF for PDFs — handles more types than the default parser."""
         try:
             from llama_index.readers.file import PyMuPDFReader
+
             docs = PyMuPDFReader().load(file_path=path)
-            if docs and any(d.text.strip() for d in docs):
+
+            # FIX: PyMuPDFReader stores bytes instead of str in Document.text.
+            # Pydantic auto-decodes valid UTF-8, but we guard against edge cases.
+            for doc in docs:
+                if isinstance(doc.text, bytes):
+                    doc.text = doc.text.decode("utf-8", errors="replace")
+
+            # Drop blank pages and pages with garbled/binary content
+            docs = [d for d in docs if d.text.strip() and self._text_is_readable(d.text)]
+
+            if docs:
                 return docs
         except Exception:
             pass
-        # Fallback to SimpleDirectoryReader if PyMuPDF fails or returns empty
-        return SimpleDirectoryReader(input_files=[path]).load_data()
+
+        # Fallback to pypdf via SimpleDirectoryReader
+        try:
+            fallback_docs = SimpleDirectoryReader(input_files=[path]).load_data()
+            # Validate fallback output — reject if it looks like raw PDF binary
+            fallback_docs = [
+                d for d in fallback_docs
+                if d.text.strip() and self._text_is_readable(d.text)
+            ]
+            if fallback_docs:
+                return fallback_docs
+        except Exception:
+            pass
+
+        raise ValueError(
+            "Could not extract readable text from this PDF. "
+            "It may be scanned/image-based and require OCR."
+        )
 
     # ------------------------------------------------------------------
     # URL ingestion
@@ -128,14 +164,30 @@ class IngestionService:
         return list(result.scalars().all())
 
     def _delete_from_chroma(self, source: str) -> None:
-        """Delete all ChromaDB nodes whose rag_source matches source."""
+        """Delete all ChromaDB nodes matching this document by rag_source or file_name."""
         try:
             client = get_chroma_client()
             collection = client.get_or_create_collection("documents")
-            results = collection.get(where={"rag_source": source})
-            ids = results.get("ids", [])
-            if ids:
-                collection.delete(ids=ids)
+            ids_to_delete: list[str] = []
+
+            # Match by rag_source (set during ingestion)
+            try:
+                results = collection.get(where={"rag_source": source})
+                ids_to_delete.extend(results.get("ids", []))
+            except Exception:
+                pass
+
+            # Also match by file_name (set by SimpleDirectoryReader/PyMuPDFReader)
+            # This catches chunks that were ingested without rag_source metadata
+            try:
+                results = collection.get(where={"file_name": source})
+                ids_to_delete.extend(results.get("ids", []))
+            except Exception:
+                pass
+
+            if ids_to_delete:
+                # Deduplicate
+                collection.delete(ids=list(set(ids_to_delete)))
         except Exception:
             pass  # Best-effort cleanup — log in production
 

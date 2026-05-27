@@ -12,52 +12,42 @@ from app.core.chromadb import get_vector_store
 from app.core.config import settings
 from app.models.chat_history import ChatHistory
 
-# HyDEQueryTransform was removed from some LlamaIndex releases.
-# Try the real import first; fall back to a manual implementation.
-try:
-    from llama_index.core.indices.query.query_transform.hyde import HyDEQueryTransform
-except ImportError:
-    try:
-        from llama_index.core.indices.query.query_transform.base import (
-            BaseQueryTransform,
+from llama_index.core.indices.query.query_transform.base import BaseQueryTransform
+from llama_index.core.schema import QueryBundle as _QueryBundle
+
+class HyDEQueryTransform(BaseQueryTransform):
+    """
+    Robust custom HyDE: ask the LLM to generate a hypothetical answer,
+    then embed that answer instead of (or alongside) the raw question.
+    """
+
+    def __init__(self, include_original: bool = True) -> None:
+        super().__init__()
+        self.include_original = include_original
+
+    def _run(
+        self, query_bundle: _QueryBundle, metadata: dict
+    ) -> _QueryBundle:
+        from llama_index.core import Settings as _Settings
+
+        prompt = (
+            "Write a short passage that would answer the following question:\n\n"
+            f"Question: {query_bundle.query_str}\n\nPassage:"
         )
-        from llama_index.core.schema import QueryBundle as _QueryBundle
+        hypothetical_doc = str(_Settings.llm.complete(prompt))
+        embedding_strs = [hypothetical_doc]
+        if self.include_original:
+            embedding_strs.append(query_bundle.query_str)
+        return _QueryBundle(
+            query_str=query_bundle.query_str,
+            custom_embedding_strs=embedding_strs,
+        )
 
-        class HyDEQueryTransform(BaseQueryTransform):  # type: ignore[no-redef]
-            """
-            Manual HyDE: ask the LLM to generate a hypothetical answer,
-            then embed that answer instead of (or alongside) the raw question.
-            """
+    def _get_prompts(self) -> dict:
+        return {}
 
-            def __init__(self, include_original: bool = True) -> None:
-                super().__init__()
-                self.include_original = include_original
-
-            def _run(
-                self, query_bundle: _QueryBundle, metadata: dict
-            ) -> _QueryBundle:
-                from llama_index.core import Settings as _Settings
-
-                prompt = (
-                    "Write a short passage that would answer the following question:\n\n"
-                    f"Question: {query_bundle.query_str}\n\nPassage:"
-                )
-                hypothetical_doc = str(_Settings.llm.complete(prompt))
-                embedding_strs = [hypothetical_doc]
-                if self.include_original:
-                    embedding_strs.append(query_bundle.query_str)
-                return _QueryBundle(
-                    query_str=query_bundle.query_str,
-                    custom_embedding_strs=embedding_strs,
-                )
-
-    except ImportError:
-
-        class HyDEQueryTransform:  # type: ignore[no-redef]
-            """Stub — only reached if LlamaIndex query-transform base is absent."""
-
-            def __init__(self, include_original: bool = True) -> None:
-                self.include_original = include_original
+    def _update_prompts(self, prompts: dict) -> None:
+        pass
 
 
 QA_PROMPT = PromptTemplate(
@@ -90,18 +80,42 @@ class QueryService:
           hyde        — HyDE: generate a hypothetical answer, embed it, search
           rerank      — retrieve more nodes then re-score with LLMRerank
           hyde+rerank — HyDE first, then rerank
+          multiquery  — Multi-query Fusion: generate variations, parallel search, RRF
         """
         node_postprocessors = []
 
         if "rerank" in mode:
             node_postprocessors.append(LLMRerank(choice_batch_size=5, top_n=3))
 
-        query_engine = index.as_query_engine(
-            streaming=streaming,
-            similarity_top_k=6 if node_postprocessors else 4,
-            text_qa_template=QA_PROMPT,
-            node_postprocessors=node_postprocessors or None,
-        )
+        # Check if we should use Multi-query Fusion retriever
+        if "multiquery" in mode:
+            from llama_index.core.retrievers import QueryFusionRetriever
+            from llama_index.core.query_engine import RetrieverQueryEngine
+
+            similarity_top_k = 6 if "rerank" in mode else 4
+            base_retriever = index.as_retriever(similarity_top_k=similarity_top_k)
+            
+            fusion_retriever = QueryFusionRetriever(
+                [base_retriever],
+                similarity_top_k=similarity_top_k,
+                num_queries=3,
+                use_async=True,
+                verbose=False,
+            )
+            
+            query_engine = RetrieverQueryEngine.from_args(
+                fusion_retriever,
+                streaming=streaming,
+                text_qa_template=QA_PROMPT,
+                node_postprocessors=node_postprocessors or None,
+            )
+        else:
+            query_engine = index.as_query_engine(
+                streaming=streaming,
+                similarity_top_k=6 if node_postprocessors else 4,
+                text_qa_template=QA_PROMPT,
+                node_postprocessors=node_postprocessors or None,
+            )
 
         if "hyde" in mode:
             hyde_transform = HyDEQueryTransform(include_original=True)

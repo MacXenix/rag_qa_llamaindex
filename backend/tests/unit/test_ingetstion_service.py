@@ -122,13 +122,21 @@ class TestDeleteFromChroma:
         mock_client = MagicMock()
         mock_collection = MagicMock()
         mock_client.get_or_create_collection.return_value = mock_collection
-        mock_collection.get.return_value = {"ids": ["id-1", "id-2"]}
+        # First call (rag_source) returns some ids, second call (file_name) returns overlapping ids
+        mock_collection.get.side_effect = [
+            {"ids": ["id-1", "id-2"]},
+            {"ids": ["id-2", "id-3"]},
+        ]
 
         with patch("app.services.ingestion_service.get_chroma_client", return_value=mock_client):
             service._delete_from_chroma("doc.pdf")
 
-        mock_collection.get.assert_called_once_with(where={"rag_source": "doc.pdf"})
-        mock_collection.delete.assert_called_once_with(ids=["id-1", "id-2"])
+        assert mock_collection.get.call_count == 2
+        mock_collection.get.assert_any_call(where={"rag_source": "doc.pdf"})
+        mock_collection.get.assert_any_call(where={"file_name": "doc.pdf"})
+        # Should deduplicate before deleting
+        deleted_ids = mock_collection.delete.call_args[1]["ids"]
+        assert sorted(deleted_ids) == ["id-1", "id-2", "id-3"]
 
     def test_no_ids_skips_delete(self, service):
         mock_client = MagicMock()

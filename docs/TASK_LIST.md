@@ -24,13 +24,13 @@
 
 **Goal:** Working project skeleton, both servers running, git initialized.
 
-- [ ] Initialize backend with FastAPI + Poetry/pip
-- [ ] Initialize frontend with Vite + React + TypeScript (can reuse from RAG-QA-SYSTEM)
-- [ ] Configure `.env.example` with all required vars
-- [ ] Set up PostgreSQL with Docker Compose
-- [ ] Set up ChromaDB with Docker Compose
-- [ ] Write `CLAUDE.md`
-- [ ] Confirm both servers run locally
+- [x] Initialize backend with FastAPI + Poetry/pip
+- [x] Initialize frontend with Vite + React + TypeScript (can reuse from RAG-QA-SYSTEM)
+- [x] Configure `.env.example` with all required vars
+- [x] Set up PostgreSQL with Docker Compose
+- [x] Set up ChromaDB with Docker Compose
+- [x] Write `CLAUDE.md`
+- [x] Confirm both servers run locally
 
 ---
 
@@ -38,14 +38,14 @@
 
 **Goal:** LlamaIndex wired up with provider and vector store.
 
-- [ ] Install LlamaIndex (`llama-index-core`, `llama-index-vector-stores-chroma`)
-- [ ] Install LlamaIndex LLM integrations (`llama-index-llms-ollama`, `llama-index-llms-openai`, `llama-index-llms-gemini`)
-- [ ] Install LlamaIndex embedding integrations (`llama-index-embeddings-ollama`, `llama-index-embeddings-openai`, `llama-index-embeddings-gemini`)
-- [ ] Configure `Settings` (global LlamaIndex settings — LLM + embed model)
-- [ ] Provider factory — reads `LLM_PROVIDER` from env, sets `Settings.llm` and `Settings.embed_model`
-- [ ] ChromaDB vector store setup via `ChromaVectorStore` + `StorageContext`
-- [ ] Startup validation — fail fast if provider config missing
-- [ ] Unit tests for provider factory
+- [x] Install LlamaIndex (`llama-index-core`, `llama-index-vector-stores-chroma`)
+- [x] Install LlamaIndex LLM integrations (`llama-index-llms-ollama`, `llama-index-llms-openai`, `llama-index-llms-gemini`)
+- [x] Install LlamaIndex embedding integrations (`llama-index-embeddings-ollama`, `llama-index-embeddings-openai`, `llama-index-embeddings-gemini`)
+- [x] Configure `Settings` (global LlamaIndex settings — LLM + embed model)
+- [x] Provider factory — reads `LLM_PROVIDER` from env, sets `Settings.llm` and `Settings.embed_model`
+- [x] ChromaDB vector store setup via `ChromaVectorStore` + `StorageContext`
+- [x] Startup validation — fail fast if provider config missing
+- [x] Unit tests for provider factory
 
 ---
 
@@ -53,19 +53,19 @@
 
 **Goal:** Upload a document and have it indexed via LlamaIndex.
 
-- [ ] `SimpleDirectoryReader` wrapper for file ingestion
-- [ ] URL ingestion via `TrafilaturaWebReader` or `BeautifulSoupWebReader`
-- [ ] `VectorStoreIndex.from_documents()` — parse → chunk → embed → store
-- [ ] PostgreSQL `documents` table model + migration
-- [ ] Ingestion service — orchestrates load → index → save metadata
-- [ ] File size validation (max 50MB)
-- [ ] File type validation (PDF, DOCX, PPTX, TXT, MD, URL)
-- [ ] `POST /api/documents/upload` endpoint
-- [ ] `POST /api/documents/url` endpoint
-- [ ] `GET /api/documents` endpoint
-- [ ] `DELETE /api/documents/{id}` endpoint
-- [ ] Unit tests for ingestion service
-- [ ] Integration tests for upload → index flow
+- [x] `SimpleDirectoryReader` wrapper for file ingestion
+- [x] URL ingestion via `TrafilaturaWebReader` or `BeautifulSoupWebReader`
+- [x] `VectorStoreIndex.from_documents()` — parse → chunk → embed → store
+- [x] PostgreSQL `documents` table model + migration
+- [x] Ingestion service — orchestrates load → index → save metadata
+- [x] File size validation (max 50MB)
+- [x] File type validation (PDF, DOCX, PPTX, TXT, MD, URL)
+- [x] `POST /api/documents/upload` endpoint
+- [x] `POST /api/documents/url` endpoint
+- [x] `GET /api/documents` endpoint
+- [x] `DELETE /api/documents/{id}` endpoint
+- [x] Unit tests for ingestion service
+- [x] Integration tests for upload → index flow
 
 ---
 
@@ -73,14 +73,14 @@
 
 **Goal:** Ask a question, get a streamed answer with citations.
 
-- [ ] `VectorStoreIndex.as_query_engine()` — basic retrieval
-- [ ] Streaming query engine (`streaming=True`)
-- [ ] Custom prompt template via `PromptTemplate`
-- [ ] Citation extraction from `NodeWithScore` results
-- [ ] Save Q&A to `chat_history` table
-- [ ] Honest fallback when no relevant nodes found
-- [ ] `POST /api/notebooks/{id}/chat` endpoint (SSE streaming)
-- [ ] Unit tests for query service (mocked index)
+- [x] `VectorStoreIndex.as_query_engine()` — basic retrieval
+- [x] Streaming query engine (`streaming=True`)
+- [x] Custom prompt template via `PromptTemplate`
+- [x] Citation extraction from `NodeWithScore` results
+- [x] Save Q&A to `chat_history` table
+- [x] Honest fallback when no relevant nodes found
+- [x] `POST /api/notebooks/{id}/chat` endpoint (SSE streaming)
+- [x] Unit tests for query service (mocked index)
 
 ---
 
@@ -88,12 +88,12 @@
 
 **Goal:** Better answers using LlamaIndex advanced features.
 
-- [ ] **HyDE** — `HyDEQueryTransform` for hypothetical document embeddings
-- [ ] **Reranking** — `SentenceTransformerRerank` or `LLMRerank` to re-score chunks
+- [x] **HyDE** — `HyDEQueryTransform` for hypothetical document embeddings
+- [x] **Reranking** — `SentenceTransformerRerank` or `LLMRerank` to re-score chunks
 - [ ] **Multi-query** — `MultiStepQueryEngine` or query decomposition
 - [ ] **Sub-question engine** — `SubQuestionQueryEngine` for multi-document queries
-- [ ] Toggle between basic and advanced retrieval via env var
-- [ ] A/B comparison endpoint to see retrieval difference
+- [x] Toggle between basic and advanced retrieval via env var
+- [x] A/B comparison endpoint to see retrieval difference
 
 ---
 
@@ -101,13 +101,13 @@
 
 **Goal:** ReAct agent that uses RAG as one tool among many.
 
-- [ ] Define RAG tool — wraps query engine as a `FunctionTool`
-- [ ] Define web search tool — Tavily or DuckDuckGo
-- [ ] Define calculator tool
-- [ ] `ReActAgent` wiring all tools together
-- [ ] Streaming agent responses via SSE
-- [ ] `POST /api/agent/chat` endpoint
-- [ ] Unit tests for agent tool wrappers
+- [x] Define RAG tool — wraps query engine as a `FunctionTool`
+- [x] Define web search tool — Tavily or DuckDuckGo
+- [x] Define calculator tool
+- [x] `ReActAgent` wiring all tools together
+- [x] Streaming agent responses via SSE
+- [x] `POST /api/agent/chat` endpoint
+- [x] Unit tests for agent tool wrappers
 
 ---
 
@@ -115,10 +115,10 @@
 
 **Goal:** UI connected to backend (can reuse Phase 4 frontend from RAG-QA-SYSTEM).
 
-- [ ] Reuse or rebuild DocumentSidebar, UploadModal, NotebookView, ChatMessage
-- [ ] Add retrieval mode toggle (basic / HyDE / reranking)
-- [ ] Add agent chat tab separate from notebook chat
-- [ ] Source citation display with node scores
+- [x] Reuse or rebuild DocumentSidebar, UploadModal, NotebookView, ChatMessage
+- [x] Add retrieval mode toggle (basic / HyDE / reranking)
+- [x] Add agent chat tab separate from notebook chat
+- [x] Source citation display with node scores
 
 ---
 
@@ -126,7 +126,7 @@
 
 **Goal:** 80%+ test coverage, clean build, ready to use.
 
-- [ ] Run pytest coverage — fix gaps to reach 80%+
+- [~] Run pytest coverage — fix gaps to reach 80%+ (Currently at 78%)
 - [ ] Final README update
 - [ ] Tag `v1.0.0`
 

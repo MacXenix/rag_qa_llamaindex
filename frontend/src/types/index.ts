@@ -22,5 +22,5 @@ export interface ChatMessage {
   isStreaming?: boolean
 }
 
-export type RetrievalMode = 'basic' | 'hyde' | 'rerank' | 'hyde+rerank'
+export type RetrievalMode = 'basic' | 'hyde' | 'rerank' | 'hyde+rerank' | 'multiquery'
 export type AppTab = 'notebook' | 'agent'

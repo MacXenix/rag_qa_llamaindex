@@ -200,3 +200,18 @@ class TestBuildQueryEngine:
         # Reranker was added as postprocessor
         kwargs = mock_index.as_query_engine.call_args.kwargs
         assert len(kwargs["node_postprocessors"]) == 1
+
+    def test_multiquery_mode_returns_retriever_query_engine(self, service):
+        mock_index = MagicMock()
+        mock_retriever = MagicMock()
+        mock_index.as_retriever.return_value = mock_retriever
+
+        with patch("llama_index.core.retrievers.QueryFusionRetriever") as mock_fusion, \
+             patch("llama_index.core.query_engine.RetrieverQueryEngine") as mock_engine_cls:
+            mock_fusion.return_value = MagicMock()
+            mock_engine_cls.from_args.return_value = MagicMock()
+            
+            service._build_query_engine(mock_index, "multiquery")
+
+        mock_fusion.assert_called_once()
+        mock_engine_cls.from_args.assert_called_once()

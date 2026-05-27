@@ -7,7 +7,7 @@ interface NotebookViewProps {
   document: Document
 }
 
-const MODES: RetrievalMode[] = ['basic', 'hyde', 'rerank', 'hyde+rerank']
+const MODES: RetrievalMode[] = ['basic', 'hyde', 'rerank', 'hyde+rerank', 'multiquery']
 
 export function NotebookView({ document }: NotebookViewProps) {
   const [messages, setMessages] = useState<ChatMsg[]>([])
