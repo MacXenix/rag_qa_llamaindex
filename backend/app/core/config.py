@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     chroma_port: int = 8001
 
     tavily_api_key: str = ""
+    
+    retrieval_mode: str = "basic"  # basic | hyde | rerank | hyde+rerank
 
     @classmethod
     def settings_customise_sources(

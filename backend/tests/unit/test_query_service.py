@@ -138,3 +138,65 @@ class TestStreamQuery:
 
         db.add.assert_called_once()
         db.commit.assert_awaited_once()
+
+class TestBuildQueryEngine:
+    def test_basic_mode_returns_plain_engine(self, service):
+        mock_index = MagicMock()
+        mock_engine = MagicMock()
+        mock_index.as_query_engine.return_value = mock_engine
+
+        result = service._build_query_engine(mock_index, "basic")
+
+        assert result is mock_engine
+        kwargs = mock_index.as_query_engine.call_args.kwargs
+        assert kwargs["node_postprocessors"] is None
+
+    def test_basic_mode_uses_top_k_4(self, service):
+        mock_index = MagicMock()
+
+        service._build_query_engine(mock_index, "basic")
+
+        kwargs = mock_index.as_query_engine.call_args.kwargs
+        assert kwargs["similarity_top_k"] == 4
+
+    def test_rerank_mode_adds_llm_reranker(self, service):
+        mock_index = MagicMock()
+
+        with patch("app.services.query_service.LLMRerank") as mock_rerank_cls:
+            mock_rerank_cls.return_value = MagicMock()
+            service._build_query_engine(mock_index, "rerank")
+
+        kwargs = mock_index.as_query_engine.call_args.kwargs
+        assert len(kwargs["node_postprocessors"]) == 1
+
+    def test_rerank_mode_uses_higher_top_k(self, service):
+        mock_index = MagicMock()
+
+        with patch("app.services.query_service.LLMRerank"):
+            service._build_query_engine(mock_index, "rerank")
+
+        kwargs = mock_index.as_query_engine.call_args.kwargs
+        assert kwargs["similarity_top_k"] == 6
+
+    def test_hyde_mode_wraps_with_transform_engine(self, service):
+        mock_index = MagicMock()
+
+        with patch("app.services.query_service.HyDEQueryTransform"), \
+             patch("app.services.query_service.TransformQueryEngine") as mock_transform:
+            service._build_query_engine(mock_index, "hyde")
+
+        mock_transform.assert_called_once()
+
+    def test_hyde_rerank_mode_combines_both(self, service):
+        mock_index = MagicMock()
+
+        with patch("app.services.query_service.LLMRerank"), \
+             patch("app.services.query_service.HyDEQueryTransform"), \
+             patch("app.services.query_service.TransformQueryEngine") as mock_transform:
+            service._build_query_engine(mock_index, "hyde+rerank")
+
+        # HyDE wraps the (already reranked) engine
+        mock_transform.assert_called_once()
+        # Reranker was added as postprocessor
+        kwargs = mock_index.as_query_engine.call_args.kwargs
+        assert len(kwargs["node_postprocessors"]) == 1

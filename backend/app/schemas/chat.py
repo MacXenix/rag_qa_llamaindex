@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict
 
 class ChatRequest(BaseModel):
     question: str
+    mode: str = "basic"
 
 
 class ChatHistoryResponse(BaseModel):

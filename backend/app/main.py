@@ -28,9 +28,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from app.api.agent import router as agent_router  # noqa: E402
 from app.api.documents import router as documents_router  # noqa: E402
-from app.api.notebooks import router as notebooks_router # noqa: E402
+from app.api.notebooks import router as notebooks_router  # noqa: E402
 
+app.include_router(agent_router)
 app.include_router(notebooks_router)
 app.include_router(documents_router)
 
